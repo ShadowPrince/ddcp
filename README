@@ -1,0 +1,17 @@
+ddcp - copy files and directories recursively via unix's dd.
+
+Usage: ddcp SOURCE DESTINATION
+
+Options:
+  -h, --help            show this help message and exit
+  -b BLOCK_SIZE, --block-size=BLOCK_SIZE
+                        block size for dd's bs
+  -q, --quiet           dont print progress to stdout
+  -d, --detailed        detailed output (with bar)
+  -v, --verbose         print system messages instead of progress bar
+  -w PBAR_WIDTH, --pbar-width=PBAR_WIDTH
+                        progressbar width
+  -c PBAR_COLOR, --pbar-color=PBAR_COLOR
+                        progressbar color
+  --dd=DD               various dd arguments added to execution string
+
