@@ -2,6 +2,7 @@
 # coding: utf8
 from pbar import ProgressBar
 from optparse import OptionParser
+from pipes import quote
 import os
 import re
 import sys
@@ -18,9 +19,9 @@ class DDTaskFile:
 
     def run_process(self):
         os.system('rm /tmp/ddres')
-        cmd = 'dd if=\'{from_path}\' of=\'{to_path}\' bs={bs} {dd} &> /tmp/ddres'.format(
-            from_path=self.from_path,
-            to_path=self.to_path,
+        cmd = 'dd if={from_path} of={to_path} bs={bs} {dd} &> /tmp/ddres'.format(
+            from_path=quote(self.from_path),
+            to_path=quote(self.to_path),
             bs=self.cmdo.block_size,
             dd=self.cmdo.dd,
         )
@@ -30,8 +31,10 @@ class DDTaskFile:
     def prepare_directory(self):
         try:
             os.makedirs(os.path.split(self.to_path)[0])
-        except OSError:
-            pass
+        except OSError, e:
+            if e.errno == 13:
+                exit('Permission denied on destination!')
+            
 
     def run(self):
         self.prepare_directory()
@@ -165,7 +168,7 @@ def complete_file_list(path):
     
 
 if __name__ == '__main__':
-    parser = OptionParser(epilog='version 0.1, http://github.com/shadowprince/ddcp/')
+    parser = OptionParser(epilog='version 0.101, http://github.com/shadowprince/ddcp/')
     parser.set_usage('ddcp SOURCE DESTINATION')
     parser.add_option('-b', '--block-size', default='1M', help='block size for dd\'s bs')
     parser.add_option('-q', '--quiet', action='store_true', help='dont print progress to stdout')
