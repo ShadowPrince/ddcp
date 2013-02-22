@@ -59,10 +59,21 @@ class DDTaskFile:
         
         result = ''
         while not result.strip():
-            result = open('/tmp/ddres').read()
+            try:
+                result = open('/tmp/ddres').read()
+            except IOError, e:
+                if e.errno == 2:
+                    exit('dd process don`t run correctly!')
+                else:
+                    raise e
 
+        # os.remove('/tmp/ddres')
         time.sleep(float(self.cmdo.delay))
-        self.speed = result.split('\n')[2].split(' ')[-2:]
+        try:
+            self.speed = result.split('\n')[2].split(' ')[-2:]
+        except IndexError, e:
+            print result
+            exit('dd result not correct!')
 
     def __unicode__(self):
         return 'Task (from_path={from_path}, to_path={to_path})'.format(
@@ -76,7 +87,7 @@ class DDTask:
         if path_to[-1] == '/':
             self.path_to = os.path.abspath(path_to) + '/'
         else:
-            self.path_to = os.path.abspath(path_to) + '/'
+            self.path_to = os.path.abspath(path_to)
 
         self.cmdo = cmdo
         self.prepare_lists()
@@ -91,7 +102,7 @@ class DDTask:
         for path, flist in complete_file_list(self.path_from).items():
             for f in flist:
                 from_path = os.path.join(path, f)
-                if os.path.isdir(self.path_to) or self.path_to[-1] == '/':
+                if os.path.isdir(self.path_to) or self.path_to[-1] == '/' or os.path.isdir(self.path_from):
                     to_path = os.path.join(
                         path.replace(os.path.split(self.path_from)[0], self.path_to), f
                     )
@@ -184,9 +195,8 @@ def complete_file_list(path):
 
     return files
     
-
-if __name__ == '__main__':
-    parser = OptionParser(epilog='version 0.105, http://github.com/shadowprince/ddcp/')
+def get_optparser():
+    parser = OptionParser(epilog='version 0.106, http://github.com/shadowprince/ddcp/')
     parser.set_usage('ddcp SOURCE DESTINATION')
     parser.add_option('-b', '--block-size', default=DEFAULT_BS, help='block size for dd\'s bs')
     parser.add_option('-q', '--quiet', action='store_true', help='dont print progress to stdout')
@@ -196,6 +206,10 @@ if __name__ == '__main__':
     parser.add_option('-c', '--pbar-color', help='progressbar color', default=DEFAULT_COLOR)
     parser.add_option('-l', '--delay', help='time delay between dd sessions', default=DEFAULT_TIME_DELAY)
     parser.add_option('', '--dd', help='various dd arguments added to execution string', default='')
+    return parser
+
+if __name__ == '__main__':
+    parser = get_optparser()
     (opt, args) = parser.parse_args()
     if len(args) == 0:
         parser.print_help()
