@@ -18,7 +18,13 @@ class DDTaskFile:
         return os.path.split(self.to_path)[1];
 
     def run_process(self):
-        os.system('rm /tmp/ddres')
+        try:
+            os.remove('/tmp/ddres')
+        except OSError, e:
+            if e.errno == 2:
+                pass
+            else:
+                raise e
         cmd = 'dd if={from_path} of={to_path} bs={bs} {dd} &> /tmp/ddres'.format(
             from_path=quote(self.from_path),
             to_path=quote(self.to_path),
@@ -34,6 +40,10 @@ class DDTaskFile:
         except OSError, e:
             if e.errno == 13:
                 exit('Permission denied on destination!')
+            elif e.errno == 17:
+                pass
+            else:
+                raise e
             
 
     def run(self):
@@ -168,7 +178,7 @@ def complete_file_list(path):
     
 
 if __name__ == '__main__':
-    parser = OptionParser(epilog='version 0.101, http://github.com/shadowprince/ddcp/')
+    parser = OptionParser(epilog='version 0.102, http://github.com/shadowprince/ddcp/')
     parser.set_usage('ddcp SOURCE DESTINATION')
     parser.add_option('-b', '--block-size', default='1M', help='block size for dd\'s bs')
     parser.add_option('-q', '--quiet', action='store_true', help='dont print progress to stdout')

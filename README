@@ -1,4 +1,5 @@
 ddcp - copy files and directories recursively via unix's dd.
+Tested on coreutils 8.20, using dd and rm;
 
 Usage: ddcp SOURCE DESTINATION
 
