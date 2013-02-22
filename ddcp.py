@@ -6,9 +6,11 @@ from pipes import quote
 import os
 import re
 import sys
+import time
 
 DEFAULT_BS = '1M'
 DEFAULT_COLOR = 'blue'
+DEFAULT_TIME_DELAY = 0.1
 BAR_CHAR_FULL = '▣'
 BAR_CHAR_EMPTY = '□'
 
@@ -59,6 +61,7 @@ class DDTaskFile:
         while not result.strip():
             result = open('/tmp/ddres').read()
 
+        time.sleep(float(self.cmdo.delay))
         self.speed = result.split('\n')[2].split(' ')[-2:]
 
     def __unicode__(self):
@@ -183,7 +186,7 @@ def complete_file_list(path):
     
 
 if __name__ == '__main__':
-    parser = OptionParser(epilog='version 0.104, http://github.com/shadowprince/ddcp/')
+    parser = OptionParser(epilog='version 0.105, http://github.com/shadowprince/ddcp/')
     parser.set_usage('ddcp SOURCE DESTINATION')
     parser.add_option('-b', '--block-size', default=DEFAULT_BS, help='block size for dd\'s bs')
     parser.add_option('-q', '--quiet', action='store_true', help='dont print progress to stdout')
@@ -191,6 +194,7 @@ if __name__ == '__main__':
     parser.add_option('-v', '--verbose', action='store_true', help='print system messages instead of progress bar')
     parser.add_option('-w', '--pbar-width', help='progressbar width')
     parser.add_option('-c', '--pbar-color', help='progressbar color', default=DEFAULT_COLOR)
+    parser.add_option('-l', '--delay', help='time delay between dd sessions', default=DEFAULT_TIME_DELAY)
     parser.add_option('', '--dd', help='various dd arguments added to execution string', default='')
     (opt, args) = parser.parse_args()
     if len(args) == 0:
