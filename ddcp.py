@@ -8,7 +8,7 @@ import re
 import sys
 
 DEFAULT_BS = '1M'
-DEFAUTL_COLOR = 'blue'
+DEFAULT_COLOR = 'blue'
 BAR_CHAR_FULL = '▣'
 BAR_CHAR_EMPTY = '□'
 
@@ -118,7 +118,7 @@ class DDOutput:
             width = int(self.cmdo.pbar_width)
         else:
             width = None
-        self.pbar = ProgressBar(cmdo.pbar_color, block=BLOCK_CHAR_FULL, empty=BLOCK_CHAR_EMPTY, width=width)
+        self.pbar = ProgressBar(cmdo.pbar_color, block=BAR_CHAR_FULL, empty=BAR_CHAR_EMPTY, width=width)
         self.cmdo = cmdo
         self.tmp = {}
         self.tmp['speed'] = ['', '']
