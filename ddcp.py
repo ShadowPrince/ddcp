@@ -13,6 +13,8 @@ DEFAULT_COLOR = 'blue'
 DEFAULT_TIME_DELAY = 0.1
 BAR_CHAR_FULL = '▣'
 BAR_CHAR_EMPTY = '□'
+####
+VERSION = 0.107
 
 class DDTaskFile:
     def __init__(self, cmdo, **kwargs):
@@ -54,6 +56,9 @@ class DDTaskFile:
             
 
     def run(self):
+        if self.cmdo.test:
+            self.speed = 'TEST_RUN'
+            return
         self.prepare_directory()
         self.run_process()
         
@@ -67,7 +72,7 @@ class DDTaskFile:
                 else:
                     raise e
 
-        # os.remove('/tmp/ddres')
+        os.remove('/tmp/ddres')
         time.sleep(float(self.cmdo.delay))
         try:
             self.speed = result.split('\n')[2].split(' ')[-2:]
@@ -82,43 +87,53 @@ class DDTaskFile:
         )
 
 class DDTask:
-    def __init__(self, cmdo, path_from, path_to):
-        self.path_from = os.path.abspath(path_from)
+    def __init__(self, cmdo, paths):
+        path_to = paths.pop()
         if path_to[-1] == '/':
             self.path_to = os.path.abspath(path_to) + '/'
         else:
             self.path_to = os.path.abspath(path_to)
 
+        self.path_from = []
+        for p in paths:
+            self.path_from.append(os.path.abspath(p))
+
         self.cmdo = cmdo
-        self.prepare_lists()
 
     def count(self):
         return len(self.flist)
+
+    def prepare_list(self, p):
+        basepath = p
+        fl = complete_file_list(p)
+
+        for path in fl:
+            if os.path.isdir(self.path_to) or self.path_to[-1] == '/' or len(fl) > 1 or os.path.isdir(basepath):
+                to_path = os.path.join(
+                    path.replace(basepath, self.path_to)
+                )
+                if os.path.isdir(to_path):
+                    to_path = os.path.join(to_path, os.path.split(path)[-1])
+            else:
+                to_path = self.path_to 
+
+            self.flist.append( DDTaskFile(
+                self.cmdo,
+                from_path=path, 
+                to_path=to_path, 
+                base_path=path.replace(path, '')
+            ) )
 
     def prepare_lists(self):
         self.from_list = []
         self.to_list = []
         self.flist = []
-        for path, flist in complete_file_list(self.path_from).items():
-            for f in flist:
-                from_path = os.path.join(path, f)
-                if os.path.isdir(self.path_to) or self.path_to[-1] == '/' or os.path.isdir(self.path_from):
-                    to_path = os.path.join(
-                        path.replace(os.path.split(self.path_from)[0], self.path_to), f
-                    )
-                else:
-                    to_path = os.path.join(
-                        path.replace(os.path.split(self.path_from)[0], self.path_to)
-                    )
-
-                self.flist.append(DDTaskFile(
-                    self.cmdo,
-                    from_path=from_path, 
-                    to_path=to_path, 
-                    base_path=path.replace(self.path_from, '')
-                ))
+        
+        for p in self.path_from:
+            self.prepare_list(p)
 
     def run(self, output):
+        self.prepare_lists()
         i = 0
         for f in self.flist:
             output.put(task=self, counter=i, state='ft_started', f=f)
@@ -129,7 +144,7 @@ class DDTask:
 class DDOutput:
     def __init__(self, cmdo):
         if cmdo.pbar_width:
-            width = int(self.cmdo.pbar_width)
+            width = int(cmdo.pbar_width)
         else:
             width = None
         self.pbar = ProgressBar(cmdo.pbar_color, block=BAR_CHAR_FULL, empty=BAR_CHAR_EMPTY, width=width)
@@ -141,14 +156,15 @@ class DDOutput:
         if kwargs.get('f') and kwargs.get('state') == 'ft_finished':
             self.tmp['speed'] = kwargs.get('f').speed
 
-        if (not self.cmdo.quiet) and (not self.cmdo.verbose):
+        if self.cmdo.quiet:
+            pass
+        elif self.cmdo.verbose:
+            self.put_verbose(*kwargs.values())
+        else:
             if self.cmdo.detailed:
                 self.put_bar_extended(*kwargs.values())
             else:
                 self.put_bar(*kwargs.values())
-
-        elif (not self.cmdo.quiet) and (self.cmdo.verbose):
-            self.put_verbose(*kwargs.values())
 
     def put_verbose(self, state, task, instance, counter):
         print '{c}/{ca} {state} \'{from_path}\' \'{to_path}\' {speed}'.format(
@@ -186,26 +202,27 @@ class DDOutput:
 
 def complete_file_list(path):
     if os.path.isfile(path):
-        f = os.path.split(path)
-        return {f[0]: [f[1]]}
+        return [path]
 
-    files = {} 
-    for p, d, f in os.walk(path, followlinks=1):
-        files[p] = f
+    paths = [] 
+    for p, d, files in os.walk(path, followlinks=1):
+        for f in files:
+            paths.append(os.path.join(p, f))
 
-    return files
+    return paths 
     
 def get_optparser():
-    parser = OptionParser(epilog='version 0.106, http://github.com/shadowprince/ddcp/')
-    parser.set_usage('ddcp SOURCE DESTINATION')
-    parser.add_option('-b', '--block-size', default=DEFAULT_BS, help='block size for dd\'s bs')
-    parser.add_option('-q', '--quiet', action='store_true', help='dont print progress to stdout')
-    parser.add_option('-d', '--detailed', action='store_true', help='detailed output (with bar)')
-    parser.add_option('-v', '--verbose', action='store_true', help='print system messages instead of progress bar')
-    parser.add_option('-w', '--pbar-width', help='progressbar width')
-    parser.add_option('-c', '--pbar-color', help='progressbar color', default=DEFAULT_COLOR)
-    parser.add_option('-l', '--delay', help='time delay between dd sessions', default=DEFAULT_TIME_DELAY)
-    parser.add_option('', '--dd', help='various dd arguments added to execution string', default='')
+    parser = OptionParser(epilog='version %s, http://github.com/shadowprince/ddcp/' % VERSION)
+    parser.set_usage('ddcp SOURCE... DESTINATION')
+    parser.add_option('-b', '--block-size', default=DEFAULT_BS, help='block size for dd\'s bs, default = %s' % DEFAULT_BS)
+    parser.add_option('-q', '--quiet', action='store_true', help='dont print progress to stdout default = false')
+    parser.add_option('-d', '--detailed', action='store_true', help='detailed output (with bar), default = false')
+    parser.add_option('-v', '--verbose', action='store_true', help='print system messages instead of progress bar, default = false')
+    parser.add_option('', '--pbar-width', help='progressbar width, default = blank (entire term)')
+    parser.add_option('', '--pbar-color', help='progressbar color, default = %s' % DEFAULT_COLOR , default=DEFAULT_COLOR)
+    parser.add_option('-l', '--delay', help='time delay between dd sessions, default = %s' % DEFAULT_TIME_DELAY, default=DEFAULT_TIME_DELAY)
+    parser.add_option('', '--test', help='dont run dd command, default = false', action='store_true')
+    parser.add_option('', '--dd', help='various dd arguments added to execution string, default = blank', default='')
     return parser
 
 if __name__ == '__main__':
@@ -218,7 +235,6 @@ if __name__ == '__main__':
     out = DDOutput(opt)
     task = DDTask(
         opt,
-        args[0],
-        args[1],
+        args,
     )
     task.run(out)
