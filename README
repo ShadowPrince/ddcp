@@ -1,7 +1,7 @@
 ddcp - copy files and directories recursively via unix's dd.
 Tested on coreutils 8.20, using dd.
 
-Usage: ddcp SOURCE DESTINATION
+Usage: ddcp SOURCES.. DESTINATION
 
 Options:
   -h, --help            show this help message and exit

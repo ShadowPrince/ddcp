@@ -10,6 +10,7 @@ import re
 import sys
 import time
 
+
 """
 Settings
 Some available trough CLI
@@ -22,6 +23,7 @@ BAR_WIDTH = None
 BAR_COLOR = 'blue'
 ####
 VERSION = 0.109
+
 
 """
 Class for file
